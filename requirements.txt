@@ -1,0 +1,8 @@
+streamlit
+pandas
+openpyxl
+pyxlsb
+matplotlib
+seaborn
+plotly
+starlette<0.40.0
