@@ -13,7 +13,7 @@ st.set_page_config(
 )
 
 # ---------------------------------------------------------
-# MÓDULO DE AUTENTICACIÓN / ACCESO PRIVADO
+# 2. Control de Acceso Privado (Contraseña mediante Secrets)
 # ---------------------------------------------------------
 def check_password():
     """Retorna True si el usuario ingresó la contraseña correcta."""
@@ -34,20 +34,12 @@ def check_password():
     else:
         return True
 
-# Si la contraseña no es correcta, detiene la ejecución del dashboard
 if not check_password():
     st.stop()
 
 # ---------------------------------------------------------
-# 2. Configuración de la página
+# 3. Estilos CSS Personalizados (Tarjetas KPI)
 # ---------------------------------------------------------
-st.set_page_config(
-    page_title="Dashboard Cobertura de Stock Mínimo - Líneas 1 y 2",
-    page_icon="📦",
-    layout="wide"
-)
-
-# Estilos CSS para replicar las tarjetas de indicadores de los ejemplos
 st.markdown("""
 <style>
     .kpi-card {
@@ -91,14 +83,16 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Paletas de color exactas
-COLOR_OK_L1 = '#0066C0'       # Azul Natura L1
+# ---------------------------------------------------------
+# 4. Constantes de Colores
+# ---------------------------------------------------------
+COLOR_OK_L1 = '#0066C0'       # Azul L1
 COLOR_OK_L2 = '#F59E0B'       # Amarillo / Ámbar L2
-COLOR_QUIEBRE = '#E53935'     # Rojo Quiebre / Sin Cobertura
-COLOR_STACK_BG = '#D1E8FF'    # Azul claro para fondo de Bins Sin Cobertura
+COLOR_QUIEBRE = '#E53935'     # Rojo Quiebre
+COLOR_STACK_BG = '#D1E8FF'    # Azul claro de fondo
 
 # ---------------------------------------------------------
-# 3. Carga y preparación de datos
+# 5. Carga y preparación de datos
 # ---------------------------------------------------------
 @st.cache_data
 def load_data(file_path_or_buffer):
@@ -118,6 +112,9 @@ def load_data(file_path_or_buffer):
     
     return df, df_l1, df_l2
 
+st.title("📦 Cobertura de Stock Mínimo en Líneas de Picking")
+st.markdown("Visualización e indicador del nivel de abastecimiento por ubicación de picking.")
+
 uploaded_file = st.file_uploader("Sube la base de Cobertura (.xlsm / .xlsx)", type=['xlsx', 'xlsm'])
 
 if uploaded_file is not None:
@@ -132,7 +129,9 @@ else:
         st.info("Por favor, sube el archivo 'Cobertura de abastecimiento de Línea de picking.xlsm' para continuar.")
         st.stop()
 
-# Funciones auxiliares para gráficos
+# ---------------------------------------------------------
+# 6. Funciones auxiliares para gráficos
+# ---------------------------------------------------------
 def create_donut_chart(title, ok_count, quiebre_count, ok_color):
     labels = ['Bins Abastecidos OK', 'Bins Sin Cobertura']
     values = [ok_count, quiebre_count]
@@ -160,7 +159,6 @@ def create_donut_chart(title, ok_count, quiebre_count, ok_color):
 def create_station_combo_chart(df_line, title, bar_color):
     df_v = df_line[df_line['LOGICA'] != '-'].copy()
     
-    # Agrupación por estación
     grp = df_v.groupby(['ESTACION', 'LOGICA']).size().unstack(fill_value=0)
     if 'OK' not in grp.columns: grp['OK'] = 0
     if 'REVISAR' not in grp.columns: grp['REVISAR'] = 0
@@ -169,7 +167,6 @@ def create_station_combo_chart(df_line, title, bar_color):
     grp['PCT_OK'] = (grp['OK'] / grp['TOTAL'] * 100).round(0)
     grp = grp.reset_index()
     
-    # Orden numérico / alfabético razonable
     try:
         grp['EST_NUM'] = pd.to_numeric(grp['ESTACION'])
         grp = grp.sort_values('EST_NUM')
@@ -178,7 +175,6 @@ def create_station_combo_chart(df_line, title, bar_color):
         
     fig = go.Figure()
     
-    # Barra apilada: Bins Abastecidos OK
     fig.add_trace(go.Bar(
         x=grp['ESTACION'],
         y=grp['OK'],
@@ -187,7 +183,6 @@ def create_station_combo_chart(df_line, title, bar_color):
         hovertemplate="Estación %{x}<br>Abastecidos: %{y}<extra></extra>"
     ))
     
-    # Barra apilada: Bins Sin Cobertura
     fig.add_trace(go.Bar(
         x=grp['ESTACION'],
         y=grp['REVISAR'],
@@ -196,7 +191,6 @@ def create_station_combo_chart(df_line, title, bar_color):
         hovertemplate="Estación %{x}<br>Sin Cobertura: %{y}<extra></extra>"
     ))
     
-    # Línea con marcadores: % Abastecido
     fig.add_trace(go.Scatter(
         x=grp['ESTACION'],
         y=grp['PCT_OK'],
@@ -213,31 +207,28 @@ def create_station_combo_chart(df_line, title, bar_color):
     
     fig.update_layout(
         title=dict(
-            text=f"<b>{title}</b><br><sup>( (%) de UBICACIONES abastecidas sobre el total de posiciones por estación. )</sup>",
-            x=0.5,
+            text=f"<b>{title}</b><br><sup>( (%) de UBICACIONES abastecidas sobre el total de posiciones por estación. )</sup>", 
+            x=0.5, 
             xanchor='center'
         ),
         barmode='stack',
-        height=420,  # Aumentamos ligeramente la altura para dar espacio a la diagonal
-        margin=dict(l=30, r=30, t=60, b=80),  # Aumentamos el margen inferior (b=80)
+        height=420,
+        margin=dict(l=30, r=30, t=60, b=80),
         legend=dict(orientation="h", yanchor="bottom", y=-0.35, xanchor="center", x=0.5),
-        
-        # --- AQUÍ ESTÁ EL CAMBIO PRINCIPAL ---
         xaxis=dict(
             type='category', 
             title=None, 
-            tickangle=-45  # Inclina las etiquetas a 45 grados diagonales
+            tickangle=-45  # Diagonal a -45°
         ),
-        # -------------------------------------
-        
         yaxis=dict(title=None, showgrid=True, gridcolor='#F1F5F9'),
         yaxis2=dict(title=None, overlaying='y', side='right', range=[0, 115], showgrid=False, ticksuffix='%'),
         paper_bgcolor='white',
         plot_bgcolor='white'
     )
+    return fig
 
 # ---------------------------------------------------------
-# 4. PESTAÑAS PRINCIPALES DEL DASHBOARD
+# 7. Pestañas Principales del Dashboard
 # ---------------------------------------------------------
 tab_consolidado, tab_l1, tab_l2, tab_estacion, tab_tabla = st.tabs([
     "📊 Resumen Consolidado (L1 + L2)", 
@@ -251,7 +242,7 @@ tab_consolidado, tab_l1, tab_l2, tab_estacion, tab_tabla = st.tabs([
 # TAB 1: RESUMEN CONSOLIDADO (L1 + L2)
 # =================================----------------========
 with tab_consolidado:
-    st.markdown("## 📊📊 Resumen de Indicadores Consolidado")
+    st.markdown("## 📊 Resumen de Indicadores Consolidado")
     
     df_valid_all = df_all[df_all['LOGICA'] != '-']
     tot_all = len(df_valid_all)
@@ -260,7 +251,6 @@ with tab_consolidado:
     pct_ok_all = (ok_all / tot_all * 100) if tot_all > 0 else 0
     pct_rev_all = (rev_all / tot_all * 100) if tot_all > 0 else 0
     
-    # Tarjetas de Indicadores Generales (Estilo Imagen 1 y 2)
     c1, c2, k3 = st.columns(3)
     with c1:
         st.markdown(f"""
@@ -289,7 +279,6 @@ with tab_consolidado:
         
     st.markdown("<br>", unsafe_allow_html=True)
     
-    # Gráficos Consolidados
     col_g1, col_g2 = st.columns([1, 1])
     
     with col_g1:
@@ -297,7 +286,6 @@ with tab_consolidado:
         st.plotly_chart(fig_donut_all, use_container_width=True)
         
     with col_g2:
-        # Comparativo L1 vs L2 (Imagen 3)
         df_l1_v = df_all[(df_all['LINEA'] == 'L1') & (df_all['LOGICA'] != '-')]
         df_l2_v = df_all[(df_all['LINEA'] == 'L2') & (df_all['LOGICA'] != '-')]
         
@@ -419,7 +407,7 @@ with tab_l2:
         st.plotly_chart(fig_st, use_container_width=True)
 
 # =================================----------------========
-# TAB 4: ESTATUS POR ESTACIÓN (Filtro detalle Imagen 5)
+# TAB 4: ESTATUS POR ESTACIÓN
 # =================================----------------========
 with tab_estacion:
     st.markdown("## 🎯 Estatus Detallado por Estación")
@@ -474,7 +462,6 @@ with tab_estacion:
     df_quiebres = df_est_data[df_est_data['LOGICA'] == 'REVISAR'].copy()
     
     if len(df_quiebres) > 0:
-        # Calcular Faltante si existen las columnas
         try:
             df_quiebres['STOCK EWM NUM'] = pd.to_numeric(df_quiebres['STOCK EWM'], errors='coerce').fillna(0)
             df_quiebres['MIN NUM'] = pd.to_numeric(df_quiebres['STOCK MINIMO (UNIDAD)'], errors='coerce').fillna(0)
