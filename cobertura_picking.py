@@ -212,18 +212,29 @@ def create_station_combo_chart(df_line, title, bar_color):
     ))
     
     fig.update_layout(
-        title=dict(text=f"<b>{title}</b><br><sup>( (%) de UBICACIONES abastecidas sobre el total de posiciones por estación. )</sup>", x=0.5, xanchor='center'),
+        title=dict(
+            text=f"<b>{title}</b><br><sup>( (%) de UBICACIONES abastecidas sobre el total de posiciones por estación. )</sup>",
+            x=0.5,
+            xanchor='center'
+        ),
         barmode='stack',
-        height=380,
-        margin=dict(l=30, r=30, t=60, b=30),
-        legend=dict(orientation="h", yanchor="bottom", y=-0.25, xanchor="center", x=0.5),
-        xaxis=dict(type='category', title=None),
+        height=420,  # Aumentamos ligeramente la altura para dar espacio a la diagonal
+        margin=dict(l=30, r=30, t=60, b=80),  # Aumentamos el margen inferior (b=80)
+        legend=dict(orientation="h", yanchor="bottom", y=-0.35, xanchor="center", x=0.5),
+        
+        # --- AQUÍ ESTÁ EL CAMBIO PRINCIPAL ---
+        xaxis=dict(
+            type='category', 
+            title=None, 
+            tickangle=-45  # Inclina las etiquetas a 45 grados diagonales
+        ),
+        # -------------------------------------
+        
         yaxis=dict(title=None, showgrid=True, gridcolor='#F1F5F9'),
         yaxis2=dict(title=None, overlaying='y', side='right', range=[0, 115], showgrid=False, ticksuffix='%'),
         paper_bgcolor='white',
         plot_bgcolor='white'
     )
-    return fig
 
 # ---------------------------------------------------------
 # 4. PESTAÑAS PRINCIPALES DEL DASHBOARD
