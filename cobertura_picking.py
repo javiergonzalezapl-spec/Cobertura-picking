@@ -12,6 +12,41 @@ st.set_page_config(
     layout="wide"
 )
 
+# ---------------------------------------------------------
+# MÓDULO DE AUTENTICACIÓN / ACCESO PRIVADO
+# ---------------------------------------------------------
+def check_password():
+    """Retorna True si el usuario ingresó la contraseña correcta."""
+    def password_entered():
+        if st.session_state["password_input"] == st.secrets["APP_PASSWORD"]:
+            st.session_state["password_correct"] = True
+            del st.session_state["password_input"]
+        else:
+            st.session_state["password_correct"] = False
+
+    if "password_correct" not in st.session_state:
+        st.text_input("🔒 Ingresa la clave de acceso:", type="password", on_change=password_entered, key="password_input")
+        return False
+    elif not st.session_state["password_correct"]:
+        st.text_input("🔒 Clave incorrecta. Inténtalo de nuevo:", type="password", on_change=password_entered, key="password_input")
+        st.error("Acceso denegado")
+        return False
+    else:
+        return True
+
+# Si la contraseña no es correcta, detiene la ejecución del dashboard
+if not check_password():
+    st.stop()
+
+# ---------------------------------------------------------
+# 2. Configuración de la página
+# ---------------------------------------------------------
+st.set_page_config(
+    page_title="Dashboard Cobertura de Stock Mínimo - Líneas 1 y 2",
+    page_icon="📦",
+    layout="wide"
+)
+
 # Estilos CSS para replicar las tarjetas de indicadores de los ejemplos
 st.markdown("""
 <style>
@@ -63,7 +98,7 @@ COLOR_QUIEBRE = '#E53935'     # Rojo Quiebre / Sin Cobertura
 COLOR_STACK_BG = '#D1E8FF'    # Azul claro para fondo de Bins Sin Cobertura
 
 # ---------------------------------------------------------
-# 2. Carga y preparación de datos
+# 3. Carga y preparación de datos
 # ---------------------------------------------------------
 @st.cache_data
 def load_data(file_path_or_buffer):
@@ -191,7 +226,7 @@ def create_station_combo_chart(df_line, title, bar_color):
     return fig
 
 # ---------------------------------------------------------
-# 3. PESTAÑAS PRINCIPALES DEL DASHBOARD
+# 4. PESTAÑAS PRINCIPALES DEL DASHBOARD
 # ---------------------------------------------------------
 tab_consolidado, tab_l1, tab_l2, tab_estacion, tab_tabla = st.tabs([
     "📊 Resumen Consolidado (L1 + L2)", 
